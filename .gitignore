@@ -164,3 +164,4 @@ coverage.xml
 .lock
 .vscode
 .idea
+.env
