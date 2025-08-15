@@ -8,6 +8,7 @@ from socketio import ASGIApp
 from eora.redis.redis import redis_async
 from eora.services.portfolio import PortfolioService
 from eora.routers.ws import sio
+from eora.config.base import Config
 
 
 @asynccontextmanager
@@ -15,7 +16,12 @@ async def lifespan(app: FastAPI):
     await redis_async.initialize()
     await redis_async.redis.flushall()
 
-    await PortfolioService(redis_async=redis_async).load_data()
+    portfolio_service = PortfolioService(redis_async=redis_async)
+    Config.PORTFOLIO_URLS = portfolio_service.get_portfolio_urls(
+        filepath="portfolio/portfolio_urls.txt"
+    )
+    portfolio_service.urls = Config.PORTFOLIO_URLS
+    await portfolio_service.load_data()
     print('end parser')
 
     yield
