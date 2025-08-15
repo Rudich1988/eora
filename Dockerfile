@@ -15,4 +15,4 @@ RUN poetry install --without dev
 
 EXPOSE 8080
 
-CMD poetry run uvicorn eora.main:app --host 0.0.0.0 --port 8080 --reload
+CMD poetry run uvicorn eora.main:app --host 0.0.0.0 --port 8080

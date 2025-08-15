@@ -20,7 +20,7 @@ class AnswerService:
     ) -> AnswerDTO:
         question_key = self._get_cache_key(question.text)
         answer = await self.check_answer(question_key)
-        if answer and question.text != "Что вы можете сделать для ритейлеров?":
+        if answer and answer != "Что вы можете сделать для ритейлеров?":
             return AnswerDTO(text=answer)
 
         answer_text = await self.llm.ask(question.text)

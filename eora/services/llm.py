@@ -1,3 +1,5 @@
+import re
+
 import openai
 
 from eora.services.portfolio import PortfolioService
@@ -14,7 +16,6 @@ PROMPT_TEMPLATE = """
 - Не выдумывайте проекты.
 - Если не знаете ответа — скажите: "Я не нашёл подходящего кейса в портфолио."
 - Указывайте номера ссылок в формате [1], [2] сразу после упоминания проекта.
-- В конце перечислите все использованные источники.
 
 ПОРТФОЛИО:
 {portfolio_context}
@@ -77,11 +78,18 @@ class LLMService:
                 temperature=0.7,
                 max_tokens=500
             )
-            return response.choices[0].message.content.strip()
+            raw_answer = response.choices[0].message.content.strip()
+            return self._format_answer_with_links(
+                raw_answer, relevant_cases
+            )
         except Exception as e:
             return f"Error Request LLM: {str(e)}"
 
-    def _find_relevant_cases(self, all_cases: list[dict], query: str) -> list[dict]:
+    def _find_relevant_cases(
+        self,
+        all_cases: list[dict],
+        query: str
+    ) -> list[dict]:
         keywords = query.lower().split()
         relevant = []
         for case in all_cases:
@@ -89,3 +97,43 @@ class LLMService:
             if any(kw in text for kw in keywords):
                 relevant.append(case)
         return relevant[:5]
+
+    def _format_answer_with_links(
+        self,
+        answer_text: str,
+        relevant_cases: list
+    ) -> str:
+        matches = re.findall(r'\[(\d+)\]', answer_text)
+        if not matches:
+            return answer_text
+
+        mentioned_cases = []
+        for num_str in matches:
+            num = int(num_str)
+            idx = num - 1
+            if 0 <= idx < len(relevant_cases):
+                mentioned_cases.append(relevant_cases[idx])
+
+        parts = re.split(r'(\[\d+\])', answer_text)
+        result_parts = []
+
+        link_counter = 0
+        for part in parts:
+            if re.match(r'\[\d+\]', part):
+                if link_counter < len(mentioned_cases):
+                    case = mentioned_cases[link_counter]
+                    url = case.get("url", "").strip()
+                    title = case.get("title", "Проект EORA")
+                    link = (
+                        f'<a href="{url}" target="_blank" title="{title}" '
+                        f'style="color: #1976d2; font-weight: bold;">'
+                        f'[{link_counter + 1}]</a>'
+                    )
+                    result_parts.append(link)
+                    link_counter += 1
+                else:
+                    result_parts.append(part)
+            else:
+                result_parts.append(part)
+
+        return ''.join(result_parts)

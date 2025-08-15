@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EORA Assistant</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9; margin: 0; }
+        .chat { max-width: 800px; margin: 0 auto; }
+        .messages { height: 70vh; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: white; border-radius: 8px; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .user { background: #e3f2fd; margin-left: auto; }
+        .bot { background: #f0f0f0; }
+        .input { display: flex; width: 100%; gap: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+        button { padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #1565c0; }
+        #typing { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="chat">
+        <h2>EORA Assistant</h2>
+        <div id="messages" class="messages"></div>
+        <div class="input">
+            <input type="text" id="question" placeholder="Задайте вопрос..." autofocus />
+            <button onclick="send()">Отправить</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js" type="text/javascript"></script>
+    <script>
+        const socket = io();
+
+        function appendMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerHTML = text;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        function showTyping() {
+            const typing = document.createElement('div');
+            typing.id = 'typing';
+            typing.className = 'message bot';
+            typing.textContent = 'Печатает...';
+            document.getElementById('messages').appendChild(typing);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        socket.on('connect', () => {
+            appendMessage('Привет! Я — ассистент EORA. Задайте ваш вопрос.', 'bot');
+        });
+
+        socket.on('connect_error', (err) => {
+            appendMessage('Ошибка подключения. Попробуйте перезагрузить страницу.', 'bot');
+            console.error(err);
+        });
+
+        socket.on('response', (data) => {
+            hideTyping();
+            appendMessage(data.text, 'bot');
+        });
+
+        function send() {
+            const input = document.getElementById('question');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            showTyping();
+            socket.emit('ask', { text: text });
+            input.value = '';
+        }
+
+        document.getElementById('question').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') send();
+        });
+    </script>
+</body>
+</html>

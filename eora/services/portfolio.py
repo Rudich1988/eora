@@ -86,8 +86,8 @@ class PortfolioService:
 
     async def parse(self, urls: list) -> dict[str, dict]:
         """Парсит все URL, если данные ещё не загружены."""
-        if self.data:
-            return self.data
+        # if self.data:
+        #     return self.data
 
         async with httpx.AsyncClient() as client:
             tasks = [self.fetch_page(client, url) for url in urls]
@@ -96,17 +96,14 @@ class PortfolioService:
         self.data = {item["url"]: item for item in results if item}
         return self.data
 
-    async def load_data(self) -> None:
-        cached_data = await self.redis_async.get_json(self.portfolio_key)
-        if cached_data:
-            return cached_data
-
+    async def load_data(self) -> Optional[dict]:
         clean_urls = [url.strip() for url in self.urls]
         data = await self.parse(urls=clean_urls)
 
         if not data:
             print("Error parsing")
             return
+
         await self.redis_async.set_json(self.portfolio_key, data)
         self.data = data
         return data
@@ -114,4 +111,4 @@ class PortfolioService:
     async def get_data(self) -> dict:
         if not self.data:
             await self.load_data()
-        return self.data
+        return self.data if self.data else {}
