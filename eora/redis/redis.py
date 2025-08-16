@@ -81,5 +81,10 @@ class AsyncCustomRedis:
 
         await self.redis.close()
 
+    async def delete(self, name):
+        """Полное удаление данных по ключу."""
+
+        return await self.redis.delete(name)
+
 
 redis_async = AsyncCustomRedis()

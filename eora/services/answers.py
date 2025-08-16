@@ -28,3 +28,10 @@ class AnswerService:
         await self.redis.set(question_key, answer_text)
 
         return AnswerDTO(text=answer_text)
+
+    async def delete_answer(
+        self,
+        question: QuestionDTO
+    ):
+        question_key = self._get_cache_key(question.text)
+        await self.redis.delete(name=question_key)
